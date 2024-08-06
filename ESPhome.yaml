@@ -15,7 +15,7 @@ logger:
 api:
   # Enable Home Assistant API
   encryption:
-    key: "XXXXXX"
+    key: "!secret haApi_password"
   #Used for buzzer music
   services:
     - service: play_rtttl
@@ -29,18 +29,18 @@ api:
 ota:
   #Home Assistant Over The Air update
   - platform: esphome
-    password: "XXXXXX"
+    password: "!secret ota_password"
 
 
 wifi:
   #Local WIFI settings
-  ssid: AIworld
-  password: XXXXXX
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
 
   # Enable fallback hotspot in case wifi connection fails
   ap:
     ssid: "Keyestudiosmarthouse"
-    password: "XXXXXX"
+    password: "!secret wifi_password"
 
 
 captive_portal:
