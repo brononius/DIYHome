@@ -1,0 +1,301 @@
+esphome:
+  name: keyestudiosmarthouse
+  friendly_name: "Eefjes Huis"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+
+# Enable logging
+logger:
+
+
+api:
+  # Enable Home Assistant API
+  encryption:
+    key: "XXXXXX"
+  #Used for buzzer music
+  services:
+    - service: play_rtttl
+      variables:
+        song_str: string
+      then:
+        - rtttl.play:
+            rtttl: !lambda 'return song_str;'
+
+
+ota:
+  #Home Assistant Over The Air update
+  - platform: esphome
+    password: "XXXXXX"
+
+
+wifi:
+  #Local WIFI settings
+  ssid: AIworld
+  password: XXXXXX
+
+  # Enable fallback hotspot in case wifi connection fails
+  ap:
+    ssid: "Keyestudiosmarthouse"
+    password: "XXXXXX"
+
+
+captive_portal:
+
+
+i2c:
+  - frequency: 800kHz
+
+
+rc522_i2c:
+  #RF-Reader
+  address: 0x28
+
+
+display:
+  # LCD Screen
+  - platform: lcd_pcf8574
+    update_interval: 10s
+    id: lcd_display
+    dimensions: 16x2
+    address: 0x27
+    lambda: |-
+      it.printf(0, 0, "Temp: %.1f C", id(temperature_dht).state);
+      it.printf(0, 1, "Vocht: %.1f %%", id(humidity_dht).state);
+
+  
+binary_sensor:
+  # Reports if this device is Connected or not
+  - platform: status
+    name: "Status"
+
+  # Left push button
+  - platform: gpio
+    pin: 
+      number: 16
+      inverted: true
+    name: "Linkerknop"
+
+  # Right push button
+  - platform: gpio
+    name: "Rechterknop"
+    pin:
+      number: 27
+      inverted: true
+      
+  # GAS Sensor
+  - platform: gpio
+    pin: 
+      number: 23
+      inverted: true
+    name: "Gas sensor"
+    device_class: gas
+  
+  # PIR Sensor
+  - platform: gpio
+    pin: 14
+    name: "Bewegingsmelder"
+    device_class: motion
+
+  # NFC tags
+  - platform: rc522
+    uid: 95-86-4D-XXXXXX
+    name: "Tag badge Blauwe Sleutelhanger"
+  - platform: rc522
+    uid: 64-6F-3E-XXXXXX
+    name: "Tag badge Witte Kredietkaart"
+  - platform: rc522
+    uid: 04-A0-05-B2-FB-5C-XXXXXX
+    name: "Tag badge Disney 04A005B2FB5CXXXXXX"
+  - platform: rc522
+    uid: 04-94-06-B2-FB-5C-XXXXXX
+    name: "Tag badge Disney 049406B2FB5CXXXXXX"
+  - platform: rc522
+    uid: 04-A7-06-B2-FB-5C-XXXXXX
+    name: "Tag badge Disney 04A706B2FB5CXXXXXX"
+  - platform: rc522
+    uid: 1D-06-8B-02-00-00-XXXXXX
+    name: "Tag badge Plugsurfing"
+  - platform: rc522
+    uid: D5-E0-9E-XXXXXX
+    name: "Tag badge Oude Witte Kredietkaart"
+  - platform: rc522
+    uid: B4-35-70-XXXXXX
+    name: "Tag badge Efteling EBR-F324004"
+  - platform: rc522
+    uid: CD-95-10-XXXXXX
+    name: "Tag badge Efteling EBR-F282747"
+
+
+light:
+  # Status LED
+  - platform: status_led
+    name: "LED"
+    pin: 12
+  
+  # 6812RGB Led
+  - platform: neopixelbus
+    type: GRB
+    variant: SK6812
+    pin: 26
+    num_leds: 4
+    name: "RGB Leds"
+    effects:
+      - pulse:
+      - random:
+      - strobe:
+      - flicker:
+      - addressable_rainbow:
+      - addressable_color_wipe:
+      - addressable_scan:
+      - addressable_twinkle:
+      - addressable_random_twinkle:
+      - addressable_fireworks:
+
+
+servo:
+  # Servo 90 Motor 1
+  - id: servo_01
+    output: servo_01_out
+
+  # Servo 90 Motor 2
+  - id: servo_02
+    output: servo_02_out
+
+
+output:
+  # Roof FAN
+  - platform: ledc
+    pin: 18
+    frequency: 100 Hz
+    id: ventilation_fan_pwm_r
+
+  # Roof FAN
+  - platform: ledc
+    pin: 19
+    frequency: 100 Hz
+    id: ventilation_fan_pwm_l
+
+  # Servo 90 Motor 1
+  - platform: ledc
+    id: servo_01_out
+    pin: 5
+    frequency: 50 Hz
+
+  # Servo 90 Motor 2
+  - platform: ledc
+    id: servo_02_out
+    pin: 13
+    frequency: 50 Hz
+
+  # Buzzer config
+  - platform: ledc
+    id: rtttl_out
+    pin: 25
+
+
+# Buzzer config
+rtttl:
+  output: rtttl_out
+  on_finished_playback:
+    - logger.log: 'Song ended!'
+
+
+number:
+  # Servo 90 Motor 1
+  - platform: template
+    name: "Venster"
+    min_value: 0
+    initial_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    set_action:
+      then:
+        - servo.write:
+            id: servo_01
+            level: !lambda 'return x / 100.0;'
+
+  # Servo 90 Motor 2
+  - platform: template
+    name: "Deur"
+    min_value: 0
+    initial_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    set_action:
+      then:
+        - servo.write:
+            id: servo_02
+            level: !lambda 'return x / 100.0;'
+
+
+fan:
+  # Roof FAN L
+  - platform: speed
+    output: ventilation_fan_pwm_l
+    name: "Dak Ventilator L"
+
+  # Roof FAN R
+  - platform: speed
+    output: ventilation_fan_pwm_r
+    name: "Dak Ventilator R"
+
+
+sensor:
+  # Reports the WiFi signal strength
+  - platform: wifi_signal
+    name: "WIFI Signaal"
+    update_interval: 60s
+
+  #Temperature and Humidity
+  - platform: dht
+    pin: 17
+    model: dht11
+    temperature:
+      name: "Temperatuur"
+      id: temperature_dht
+    humidity:
+      name: "Vochtigheid"
+      id: humidity_dht
+    update_interval: 30s    
+
+  # Reports how long the device has been powered (in minutes)
+  - platform: uptime
+    name: "Opgestart"
+    filters:
+      - lambda: return x / 60.0;
+    unit_of_measurement: minutes
+
+  # Steam Sensor
+  - platform: adc
+    pin: 34
+    name: "Stoom Water sensor"
+    update_interval: 30s    
+
+
+switch:
+  # Helps to restart the device at distance
+  - platform: restart
+    name: "Herstart"
+
+
+text_sensor:
+  # Reports the ESPHome Version with compile date
+  - platform: version
+    name: "ESPHome Versie"
+
+  # Reports WiFi name
+  - platform: wifi_info
+    ssid:
+      name: "WiFi"
+
+  # Reports current IP
+  - platform: wifi_info
+    ip_address:
+      name: "IP-Adres"
+
